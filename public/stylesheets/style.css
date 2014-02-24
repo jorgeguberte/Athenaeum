@@ -1,0 +1,38 @@
+.shelfItemView{
+	height: 350px;
+	
+	margin-bottom: 50px;
+}
+
+
+
+.shelfItemThumbnailContainer{
+	height: 220px;
+}
+.shelfItemThumbnail{
+	width: 150px;
+	max-height: 220px;
+	margin-left: 70px;
+}
+
+
+.shelfItemDetails{
+	height: 89px;
+}
+.shelfItemTitle, .shelfItemAuthor{
+	text-align: center;
+	margin-top: 5px;
+}
+
+.shelfItemControls{
+	text-align: center;
+}
+
+
+#addedToShelfAlert{
+	display: none;
+}
+
+.dropdown-menu a{
+	color: white;
+}

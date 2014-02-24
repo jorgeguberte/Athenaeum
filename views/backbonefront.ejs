@@ -1,0 +1,243 @@
+<!doctype html>
+<html>
+	<head>
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+		<script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js"></script>
+		<script src="//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.0/backbone-min.js"></script>	
+		<script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/1.0.0/handlebars.min.js"></script>
+		<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+
+		<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootswatch/3.1.0/cosmo/bootstrap.min.css"/>
+		<link rel="stylesheet" href="stylesheets/style.css"/>
+	</head>
+
+	<body>
+			<!-- navbar -->
+		<nav class="navbar navbar-inverse navbar-default" role="navigation">
+			<div class="container-fluid">
+				<div class="navbar-header">
+					<a class="navbar-brand" href="#">Bookshelf</a>
+				</div>
+
+				<ul class="nav navbar-nav" id="mainNav">
+					<li class="active"><a href="#">Início</a></li>
+					<li><a href="#shelf">Minha Estante</a></li>
+					<li><a href="#reviews">Recomendações</a></li>
+				</ul>
+
+				<form class="navbar-form navbar-right" role="search">
+				<div class="btn-group" data-toggle="buttons" id="searchTaxonomyGroup">
+    					<label class="btn btn-info active btn-sm">
+        					<input type="radio" name="searchTaxonomy"  value="author" checked>
+    						Autor
+    					</label>
+    					<label class="btn btn-info btn-sm">
+        					<input type="radio" name="searchTaxonomy"  value="title">
+    						Título </label>
+    	
+					</div>
+        			<div class="form-group">
+        			
+
+          				<input type="text" class="form-control col-sm-10" placeholder="Buscar livros ou autores" id="searchTerm">
+        			
+        				<button type="button" class="btn btn-info" id="searchTrigger">
+        					<span class="glyphicon glyphicon-search"></span>
+        				</button>
+        			</div>
+      			</form>
+			</div>
+		</nav> 
+
+
+		<div class="container" id="viewContainer"></div>
+
+		<script type="text/template" id="splashTemplate">
+			<div class="jumbotron">
+				<h1>Texto do Splash!</h1>
+			</div>
+		</script>
+
+
+		<script type="text/template" id="shelfListTemplate">
+		<div class="alert alert-success" id="addedToShelfAlert">Texto do Alerta</div>
+			<h1>{{viewtitle}}</h1>
+
+		</script>
+
+		<script type="text/template" id="shelfItemTemplate">
+				<div class="row shelfItemThumbnailContainer">
+						<img src="{{item.thumbnail}}" class="shelfItemThumbnail"/>
+				</div>
+			<div class="row shelfItemDetails">
+				<p class="shelfItemTitle">{{item.title}}</p>
+				<p class="shelfItemAuthor">{{item.authors}}</p>
+			</div>
+			<div class="row shelfItemControls" data-book_id="{{item.id}}">
+					<button type="button" class="btn btn-sm btn-default" data-status="0">Lido</button>
+					<button type="button" class="btn btn-sm btn-default" data-status="1">Lendo</button>
+					<button type="button" class="btn btn-sm btn-default" data-status="2">Lerei</button>
+			</div>
+		</script>
+
+		<script>
+			 $.ajaxPrefilter(function(options, originalOptions, jqXHR){
+                    //options.url = 'http://aqueous-stream-3354.herokuapp.com/' + options.url;
+                    options.url = 'http://localhost:3000' + options.url;
+            });
+
+			 var Book = Backbone.Model.extend({
+                urlRoot : '/api/shelftest',
+                idAttribute :"id",
+                url: function () {return this.urlRoot}
+            });
+
+
+
+			 var SearchShelf = Backbone.Collection.extend({
+			 	model: Book,
+			 	urlRoot: '/api/search',
+			 });
+
+			 var UserShelf = Backbone.Collection.extend({
+			 	model: Book,
+			 	url: '/api/shelf',
+			 	teste: function(theId){
+			 		console.log(this.models);
+			 	},
+			 	save: function(){
+			 		console.log('saving user shelf');
+			 		$(document).ajaxComplete(function(){
+			 			var n = noty({text: 'Adicionado'});
+			 		})
+			 		Backbone.sync('create', this);
+			 	}
+			 });
+			 var userShelf = new UserShelf;
+
+			 
+
+			 var ShelfItemView = Backbone.View.extend({
+			 	className: 'col-lg-3 shelfItemView',
+			 	initialize: function(){
+			 		this.template = Handlebars.compile($('#shelfItemTemplate').html());
+			 		this.render()
+			 	},
+
+			 	events: {
+			 		'click button': 'addToUserShelf'
+			 	},
+
+			 	addToUserShelf: function(){
+			 		//If is already in shelf, update status if diffferent.
+			 		if(userShelf.get(this.model.id)){
+			 			console.log('has it');
+			 		}else{
+			 			userShelf.add(this.model);
+			 			userShelf.save();
+			 		}
+			 		//If not in shelf, add.
+
+
+			 	},
+			 	render: function(){
+			 		this.$el.html(this.template({item:this.model}));
+			 		return this;
+			 	}
+			 });
+
+
+			 var ShelfListView = Backbone.View.extend({
+			 	el: $('#viewContainer'),
+			 	initialize: function(params){
+			 		this.viewtitle = params.viewtitle;
+			 		this.template = Handlebars.compile($('#shelfListTemplate').html());
+			 		this.render(params);
+			 	},
+			 	render: function(params){
+			 		var that = this;
+			 		this.$el.empty();
+			 		this.$el.append(this.template({viewtitle:params.viewtitle}));
+			 		this.collection.each(function(model){
+			 			that.$el.append(new ShelfItemView({model: model.toJSON()}).render().el);
+			 		});
+			 	}
+			 });
+
+
+
+			 var SplashView = Backbone.View.extend({
+			 	el: $('#viewContainer'),
+			 	initialize: function(){
+			 		this.template = Handlebars.compile($('#splashTemplate').html());
+			 		this.render();
+			 	},
+
+			 	render: function(){
+			 		this.$el.html(this.template());
+			 	}
+			 });
+
+
+			 $('#searchTrigger').click(function(){
+			 	var taxonomy = $('input[name=searchTaxonomy]:checked').val();
+			 	var term = $('#searchTerm').val();
+			 	var searchShelf = new SearchShelf;
+
+			 	searchShelf.url = searchShelf.urlRoot+'/'+taxonomy+'/'+term;
+			 	searchShelf.fetch().done(function(){
+			 		var shelfListView = new ShelfListView({collection:searchShelf, viewtitle:'Resultados da Busca'});
+			 	
+			 	});
+
+			 });
+
+			 var Router = Backbone.Router.extend({
+                routes: {
+                    '':'home',
+                    'shelf':'shelf',
+                    'reviews':'reviews'
+                },
+
+                initialize: function(){
+                	Backbone.history.start();
+                	this.navigate('', {trigger:true});
+                	userShelf.fetch();
+
+                },
+
+                home: function(){
+                	var splashView = new SplashView();
+                	this.setActiveNav(0);
+                },
+
+                shelf: function(){
+                	var userShelfView = new ShelfListView({collection:userShelf, viewtitle:'Minha Estante'});
+                	this.setActiveNav(1);
+
+                	
+
+                },
+
+                reviews: function(){
+                	this.setActiveNav(2);
+                },
+
+                setActiveNav: function(index){
+                	var activeNav = $('#mainNav li').get(index);
+                	$('#mainNav .active').toggleClass('active');
+                	$(activeNav).toggleClass('active');
+                }
+
+            });
+
+			var router = new Router();
+
+
+
+            
+		</script>
+	</body>
+
+
+</html>
